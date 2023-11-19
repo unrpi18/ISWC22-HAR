@@ -44,9 +44,16 @@ class Exp(object):
 
     def acquire_device(self):
         if self.args.use_gpu:
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(self.args.gpu) if not self.args.use_multi_gpu else self.args.devices
-            device = torch.device('cuda:{}'.format(self.args.gpu))
-            print('Use GPU: cuda:{}'.format(self.args.gpu))
+            if torch.cuda.is_available():
+                os.environ["CUDA_VISIBLE_DEVICES"] = str(self.args.gpu) if not self.args.use_multi_gpu else self.args.devices
+                device = torch.device('cuda:{}'.format(self.args.gpu))
+                print('Use GPU: cuda:{}'.format(self.args.gpu))
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
+                print('Use GPU: MPS')
+            else:
+                print('No supported GPU found, using CPU.')
+                device = torch.device('cpu')
         else:
             device = torch.device('cpu')
             print('Use CPU')
@@ -54,7 +61,7 @@ class Exp(object):
 
     def build_model(self):
         model = model_builder(self.args)
-        return model.double()
+        return model.float()
 
     def _select_optimizer(self):
         if self.args.optimizer not in self.optimizer_dict.keys():
@@ -70,7 +77,7 @@ class Exp(object):
 
     def _get_data(self, data, flag="train", weighted_sampler = False):
         if flag == 'train':
-            shuffle_flag = True 
+            shuffle_flag = True
         else:
             shuffle_flag = False
 
@@ -81,14 +88,14 @@ class Exp(object):
                 data.act_weights, len(data.act_weights)
             )
 
-            data_loader = DataLoader(data, 
+            data_loader = DataLoader(data,
                                      batch_size   =  self.args.batch_size,
                                      #shuffle      =  shuffle_flag,
                                      num_workers  =  0,
                                      sampler=sampler,
                                      drop_last    =  False)
         else:
-            data_loader = DataLoader(data, 
+            data_loader = DataLoader(data,
                                      batch_size   =  self.args.batch_size,
                                      shuffle      =  shuffle_flag,
                                      num_workers  =  0,
@@ -101,28 +108,28 @@ class Exp(object):
             config_file = open('../../configs/model.yaml', mode='r')
             config = yaml.load(config_file, Loader=yaml.FullLoader)["deepconvlstm"]
             setting = "deepconvlstm_data_{}_seed_{}_windowsize_{}_waveFilter_{}_Fscaling_{}_cvfilter_{}_lstmfilter_{}_Regu_{}_wavelearnble_{}".format(self.args.data_name,
-                                                                                                                                                        self.args.seed,
-                                                                                                                                                        self.args.windowsize,
-                                                                                                                                                        self.args.wavelet_filtering,
-                                                                                                                                                        self.args.filter_scaling_factor,
-                                                                                                                                                        config["nb_filters"],
-                                                                                                                                                        config["nb_units_lstm"],
-                                                                                                                                                        self.args.wavelet_filtering_regularization,
-                                                                                                                                                        self.args.wavelet_filtering_learnable )
+                                                                                                                                                      self.args.seed,
+                                                                                                                                                      self.args.windowsize,
+                                                                                                                                                      self.args.wavelet_filtering,
+                                                                                                                                                      self.args.filter_scaling_factor,
+                                                                                                                                                      config["nb_filters"],
+                                                                                                                                                      config["nb_units_lstm"],
+                                                                                                                                                      self.args.wavelet_filtering_regularization,
+                                                                                                                                                      self.args.wavelet_filtering_learnable )
             return setting
 
         if self.args.model_type == "deepconvlstm_attn":
             config_file = open('../../configs/model.yaml', mode='r')
             config = yaml.load(config_file, Loader=yaml.FullLoader)["deepconvlstm_attn"]
             setting = "deepconvlstm_attn_data_{}_seed_{}_windowsize_{}_waveFilter_{}_Fscaling_{}_cvfilter_{}_lstmfilter_{}_Regu_{}_wavelearnble_{}".format(self.args.data_name,
-                                                                                                                                                          self.args.seed,
-                                                                                                                                                          self.args.windowsize,
-                                                                                                                                                          self.args.wavelet_filtering,
-                                                                                                                                                          self.args.filter_scaling_factor,
-                                                                                                                                                          config["nb_filters"],
-                                                                                                                                                          config["nb_units_lstm"],
-                                                                                                                                                          self.args.wavelet_filtering_regularization,
-                                                                                                                                                          self.args.wavelet_filtering_learnable )
+                                                                                                                                                           self.args.seed,
+                                                                                                                                                           self.args.windowsize,
+                                                                                                                                                           self.args.wavelet_filtering,
+                                                                                                                                                           self.args.filter_scaling_factor,
+                                                                                                                                                           config["nb_filters"],
+                                                                                                                                                           config["nb_units_lstm"],
+                                                                                                                                                           self.args.wavelet_filtering_regularization,
+                                                                                                                                                           self.args.wavelet_filtering_learnable )
             return setting
 
 
@@ -130,13 +137,13 @@ class Exp(object):
             config_file = open('../../configs/model.yaml', mode='r')
             config = yaml.load(config_file, Loader=yaml.FullLoader)["mcnn"]
             setting = "mcnn_data_{}_seed_{}_windowsize_{}_waveFilter_{}_Fscaling_{}_cvfilter_{}_Regu_{}_wavelearnble_{}".format(self.args.data_name,
-                                                                                                                                              self.args.seed,
-                                                                                                                                              self.args.windowsize,
-                                                                                                                                              self.args.wavelet_filtering,
-                                                                                                                                              self.args.filter_scaling_factor,
-                                                                                                                                              config["nb_filters"],
-                                                                                                                                              self.args.wavelet_filtering_regularization,
-                                                                                                                                              self.args.wavelet_filtering_learnable )
+                                                                                                                                self.args.seed,
+                                                                                                                                self.args.windowsize,
+                                                                                                                                self.args.wavelet_filtering,
+                                                                                                                                self.args.filter_scaling_factor,
+                                                                                                                                config["nb_filters"],
+                                                                                                                                self.args.wavelet_filtering_regularization,
+                                                                                                                                self.args.wavelet_filtering_learnable )
             return setting
 
         elif self.args.model_type == "attend":
@@ -169,13 +176,13 @@ class Exp(object):
             config_file = open('../../configs/model.yaml', mode='r')
             config = yaml.load(config_file, Loader=yaml.FullLoader)["tinyhar"]
             setting = "tinyhar_data_{}_seed_{}_windowsize_{}_cvfilter_{}_CI_{}_CA_{}_TI_{}_TA_{}".format(self.args.data_name,
-                                                                                                        self.args.seed,
-                                                                                                        self.args.windowsize,
-                                                                                                        config["filter_num"],
-                                                                                                        self.args.cross_channel_interaction_type,
-                                                                                                        self.args.cross_channel_aggregation_type,
-                                                                                                        self.args.temporal_info_interaction_type,
-                                                                                                        self.args.temporal_info_aggregation_type )
+                                                                                                         self.args.seed,
+                                                                                                         self.args.windowsize,
+                                                                                                         config["filter_num"],
+                                                                                                         self.args.cross_channel_interaction_type,
+                                                                                                         self.args.cross_channel_aggregation_type,
+                                                                                                         self.args.temporal_info_interaction_type,
+                                                                                                         self.args.temporal_info_aggregation_type )
             return setting
         else:
             raise NotImplementedError
@@ -203,7 +210,7 @@ class Exp(object):
         torch.manual_seed(self.args.seed)
         torch.cuda.manual_seed(self.args.seed)
         torch.cuda.manual_seed_all(self.args.seed)
-        torch.backends.cudnn.deterministic = True 
+        torch.backends.cudnn.deterministic = True
         random.seed(self.args.seed)
         np.random.seed(self.args.seed)
 
@@ -223,18 +230,18 @@ class Exp(object):
             torch.manual_seed(self.args.seed)
             torch.cuda.manual_seed(self.args.seed)
             torch.cuda.manual_seed_all(self.args.seed)
-            torch.backends.cudnn.deterministic = True 
+            torch.backends.cudnn.deterministic = True
             random.seed(self.args.seed)
             np.random.seed(self.args.seed)
             g = torch.Generator()
-            g.manual_seed(self.args.seed)                  
+            g.manual_seed(self.args.seed)
             torch.backends.cudnn.benchmark = False
             os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
             os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":16:8"
- 
+
 
             print("================ the {} th CV Experiment ================ ".format(iter))
-	
+
             dataset.update_train_val_test_keys()
 
             cv_path = os.path.join(self.path,"cv_{}".format(iter))
@@ -277,9 +284,9 @@ class Exp(object):
                 score_log = open(score_log_file_name, "a")
 
 
-                print("================ Build the model ================ ")	
+                print("================ Build the model ================ ")
                 if self.args.mixup:
-                     print(" Using Mixup Training")				
+                    print(" Using Mixup Training")
                 self.model  = self.build_model().to(self.device)
 
 
@@ -317,7 +324,7 @@ class Exp(object):
                         #    else:
                         #        outputs = self.model(batch_x1,batch_x2)
                         #else:
-                        batch_x1 = batch_x1.double().to(self.device) #--
+                        batch_x1 = batch_x1.float().to(self.device) #--
                         batch_y = batch_y.long().to(self.device) #--
 
                         #    if self.args.mixup:
@@ -373,7 +380,7 @@ class Exp(object):
                     learning_rate_adapter(model_optim,vali_loss)
 
 
-			
+
                 # rename the best_vali to final_best_vali
                 os.rename(cv_path+'/'+'best_vali.pth', cv_path+'/'+'final_best_vali.pth')
 
@@ -534,8 +541,8 @@ class Exp(object):
                     outputs = self.model(batch_x1)
 
             preds.extend(list(np.argmax(outputs.detach().cpu().numpy(),axis=1)))
-            trues.extend(list(batch_y.detach().cpu().numpy())) 
-		
+            trues.extend(list(batch_y.detach().cpu().numpy()))
+
         acc = accuracy_score(preds,trues)
         f_w = f1_score(trues, preds, average='weighted')
         f_macro = f1_score(trues, preds, average='macro')
@@ -564,7 +571,7 @@ class Exp(object):
                         outputs = model(batch_x1,batch_x2)
                 else:
                     if selected_index is None:
-                        batch_x1 = batch_x1.double().to(self.device)
+                        batch_x1 = batch_x1.float().to(self.device)
                     else:
                         batch_x1 = batch_x1[:, selected_index.tolist(),:,:].double().to(self.device)
                     batch_y = batch_y.long().to(self.device)
@@ -579,12 +586,12 @@ class Exp(object):
                 pred = outputs.detach()#.cpu()
                 true = batch_y.detach()#.cpu()
 
-                loss = criterion(pred, true) 
+                loss = criterion(pred, true)
                 total_loss.append(loss.cpu())
-				
+
                 preds.extend(list(np.argmax(outputs.detach().cpu().numpy(),axis=1)))
-                trues.extend(list(batch_y.detach().cpu().numpy()))   
-				
+                trues.extend(list(batch_y.detach().cpu().numpy()))
+
         total_loss = np.average(total_loss)
         acc = accuracy_score(preds,trues)
         #f_1 = f1_score(trues, preds)
